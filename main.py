@@ -13,12 +13,11 @@ import logging
 API_TOKEN = 'my token'
 
 conn = psycopg2.connect(
-    dbname='db name',
-    user='user',
-    password='password',
-    host='host',
-    port ="port"
-)
+       dbname='your_dbname',
+       user='your_username',
+       password='your_password',
+       host='your_host'
+   )
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
