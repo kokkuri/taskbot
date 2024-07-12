@@ -10,14 +10,15 @@ from psycopg2 import sql
 from datetime import datetime, timedelta
 import logging
 
-API_TOKEN = 'my token'
+API_TOKEN = '7356915520:AAGqkPNA_yosOzAki3yfMjZ340_FZt0bvgY'
 
 conn = psycopg2.connect(
-       dbname='your_dbname',
-       user='your_username',
-       password='your_password',
-       host='your_host'
-   )
+    dbname='telegram',
+    user='postgres',
+    password='somepass',
+    host='localhost',
+    port ="5432"
+)
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
@@ -26,7 +27,6 @@ dp.middleware.setup(LoggingMiddleware())
 task_cb = CallbackData("task", "action", "value")
 user_state = {}
 
-#Приветствие
 @dp.message_handler(commands=['start'])
 async def send_welcome(message: types.Message):
     await message.reply(
@@ -34,7 +34,6 @@ async def send_welcome(message: types.Message):
         "This bot will help you to schedule all your tasks.\n"
         "Use /help to see all available commands."
     )
-
 #Список доступных команд
 @dp.message_handler(commands=['help'])
 async def send_help(message: types.Message):
@@ -46,19 +45,18 @@ async def send_help(message: types.Message):
         "/edit - Edit a task by selecting it from a list"
     )
 
-#Вызов команды add
+#Вызов команды добавления задачи
 @dp.message_handler(commands=['add'])
 async def add_task(message: types.Message):
-    await message.answer("Please provide the description of of the task:")
+    await message.answer("Please provide the description of the task:")
     user_state[message.from_user.id] = {'state': 'awaiting_task_name', 'action': 'add'}
 
-#Вызов команды edit
+#Вызов команды для редактирования задач
 @dp.message_handler(commands=['edit'])
 async def edit_task(message: types.Message):
     user_id = message.from_user.id
 
     try:
-        #Получим список команд
         with conn.cursor() as cursor:
             cursor.execute("SELECT id, task, remind_at FROM tasks WHERE user_id = %s ORDER BY remind_at", (user_id,))
             rows = cursor.fetchall()
@@ -66,15 +64,15 @@ async def edit_task(message: types.Message):
         if not rows:
             await message.answer("No tasks found to edit.")
             return
-        #Вывод всех задач в отсортированном виде
+
         markup = InlineKeyboardMarkup(row_width=1)
         for row in rows:
-            task_button = InlineKeyboardButton(f"{row[1]} at {row[2]}",
-                                               callback_data=task_cb.new(action='select_edit', value=row[0]))
+            task_button = InlineKeyboardButton(f"{row[1]} at {row[2]}", callback_data=task_cb.new(action='select_edit', value=row[0]))
             markup.add(task_button)
         await message.answer("Please select the task to edit:", reply_markup=markup)
     except Exception as e:
         await message.answer(f"Failed to retrieve tasks: {e}")
+
 
 @dp.callback_query_handler(task_cb.filter(action='select_edit'))
 async def process_edit_selection(callback_query: types.CallbackQuery, callback_data: dict):
@@ -85,7 +83,6 @@ async def process_edit_selection(callback_query: types.CallbackQuery, callback_d
     await bot.send_message(user_id, "Please provide the new name of the task:")
 
 
-#Получим описание задачи
 @dp.message_handler(lambda message: user_state.get(message.from_user.id, {}).get('state') == 'awaiting_task_name')
 async def process_task_name(message: types.Message):
     user_state[message.from_user.id]['task_name'] = message.text
@@ -93,7 +90,6 @@ async def process_task_name(message: types.Message):
     await send_date_selection_markup(message.from_user.id)
 
 
-#Выбор даты
 async def send_date_selection_markup(user_id):
     markup = InlineKeyboardMarkup(row_width=3)
     markup.add(
@@ -106,6 +102,7 @@ async def send_date_selection_markup(user_id):
         markup.add(InlineKeyboardButton(day_name, callback_data=task_cb.new(action='set_date', value=day_name.lower())))
 
     await bot.send_message(user_id, "Please select the date for the reminder:", reply_markup=markup)
+
 
 @dp.callback_query_handler(task_cb.filter(action='set_date'))
 async def process_date_selection(callback_query: types.CallbackQuery, callback_data: dict):
@@ -131,7 +128,7 @@ async def process_date_selection(callback_query: types.CallbackQuery, callback_d
 
     await bot.send_message(user_id, "Please provide the time for the reminder (HH:MM):")
 
-# Для ввода даты с клавиатуры
+
 @dp.message_handler(lambda message: user_state.get(message.from_user.id, {}).get('state') == 'awaiting_custom_date')
 async def process_custom_date(message: types.Message):
     try:
@@ -143,7 +140,7 @@ async def process_custom_date(message: types.Message):
     except ValueError:
         await message.answer("Invalid date format. Please provide the date in DD.MM.YYYY format.")
 
-#Для повторения задач
+
 @dp.message_handler(lambda message: user_state.get(message.from_user.id, {}).get('state') == 'awaiting_time_selection')
 async def process_time_selection(message: types.Message):
     try:
@@ -167,6 +164,7 @@ async def process_time_selection(message: types.Message):
     except ValueError:
         await message.answer("Invalid time format. Please provide the time in HH:MM format.")
 
+
 @dp.callback_query_handler(task_cb.filter(action='set_repeat'))
 async def process_repeat_selection(callback_query: types.CallbackQuery, callback_data: dict):
     user_id = callback_query.from_user.id
@@ -180,7 +178,6 @@ async def process_repeat_selection(callback_query: types.CallbackQuery, callback
         await update_task(user_id)
 
 
-#Сохраним полученое в базу данных
 async def save_task(user_id):
     task_name = user_state[user_id]['task_name']
     remind_at = user_state[user_id]['remind_at']
@@ -199,7 +196,7 @@ async def save_task(user_id):
     finally:
         user_state.pop(user_id, None)
 
-# Обновление задачи
+
 async def update_task(user_id):
     task_id = user_state[user_id]['task_id']
     task_name = user_state[user_id]['task_name']
@@ -218,40 +215,37 @@ async def update_task(user_id):
         await bot.send_message(user_id, f"Failed to edit task: {e}")
     finally:
         user_state.pop(user_id, None)
-
-
-# Список задач
+#Список доступных задач
 @dp.message_handler(commands=['list'])
 async def list_tasks(message: types.Message):
     user_id = message.from_user.id
 
     try:
-        # Retrieve tasks for the user, sorted by remind_at
         with conn.cursor() as cursor:
-            cursor.execute("SELECT task, remind_at FROM tasks WHERE user_id = %s ORDER BY remind_at", (user_id,))
+            cursor.execute("SELECT task, remind_at, repeat_interval FROM tasks WHERE user_id = %s ORDER BY remind_at", (user_id,))
             rows = cursor.fetchall()
 
         if not rows:
             await message.answer("No tasks found.")
             return
 
-        # Prepare and send the list of tasks
         response = "Here are your tasks:\n"
         for index, row in enumerate(rows, start=1):
-            response += f"{index}. {row[0]} at {row[1]}\n"
+            remind_at_str = row[1].strftime('%Y-%m-%d %H:%M')
+            task_info = f"{index}. {row[0]} at {remind_at_str}"
+            if row[2] != 'no_repeat':
+                task_info += f", Repeat: {row[2]}"
+            response += task_info + "\n"
 
         await message.answer(response)
     except Exception as e:
         await message.answer(f"Failed to retrieve tasks: {e}")
-
-
-#Удаление задач
+#удаление задач
 @dp.message_handler(commands=['delete'])
 async def delete_task(message: types.Message):
     user_id = message.from_user.id
 
     try:
-        # Retrieve tasks for the user
         with conn.cursor() as cursor:
             cursor.execute("SELECT id, task, remind_at FROM tasks WHERE user_id = %s ORDER BY remind_at", (user_id,))
             rows = cursor.fetchall()
@@ -262,12 +256,12 @@ async def delete_task(message: types.Message):
 
         markup = InlineKeyboardMarkup(row_width=1)
         for row in rows:
-            task_button = InlineKeyboardButton(f"{row[1]} at {row[2]}",
-                                               callback_data=task_cb.new(action='delete_task', value=row[0]))
+            task_button = InlineKeyboardButton(f"{row[1]} at {row[2]}", callback_data=task_cb.new(action='delete_task', value=row[0]))
             markup.add(task_button)
         await message.answer("Please select the task to delete:", reply_markup=markup)
     except Exception as e:
         await message.answer(f"Failed to retrieve tasks: {e}")
+
 
 @dp.callback_query_handler(task_cb.filter(action='delete_task'))
 async def process_delete_task(callback_query: types.CallbackQuery, callback_data: dict):
@@ -282,19 +276,35 @@ async def process_delete_task(callback_query: types.CallbackQuery, callback_data
         await bot.send_message(user_id, "Task deleted.")
     except Exception as e:
         await bot.send_message(user_id, f"Failed to delete task: {e}")
+
 #для отправки уведомлений
 async def send_notifications():
     while True:
         now = datetime.now()
         with conn.cursor() as cursor:
-            cursor.execute("SELECT user_id, task FROM tasks WHERE remind_at <= %s", (now,))
+            cursor.execute("SELECT user_id, task, repeat_interval FROM tasks WHERE remind_at <= %s", (now,))
             rows = cursor.fetchall()
 
             for row in rows:
-                user_id, task = row
+                user_id, task, repeat_interval = row
                 await bot.send_message(user_id, f"Task reminder: {task}")
 
-                cursor.execute("DELETE FROM tasks WHERE user_id = %s AND task = %s", (user_id, task))
+                if repeat_interval == 'no_repeat':
+                    cursor.execute("DELETE FROM tasks WHERE user_id = %s AND task = %s", (user_id, task))
+                else:
+                    if repeat_interval == 'everyday':
+                        new_remind_at = now + timedelta(days=1)
+                    elif repeat_interval == 'every_week':
+                        new_remind_at = now + timedelta(weeks=1)
+                    elif repeat_interval == 'every_month':
+                        new_remind_at = now + timedelta(days=30)
+                    elif repeat_interval == 'every_year':
+                        new_remind_at = now + timedelta(days=365)
+                    else:
+                        new_remind_at = now
+
+                    cursor.execute("UPDATE tasks SET remind_at = %s WHERE user_id = %s AND task = %s", (new_remind_at, user_id, task))
+
                 conn.commit()
 
         await asyncio.sleep(60)
