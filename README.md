@@ -26,7 +26,7 @@ CREATE TABLE tasks (
     user_id BIGINT NOT NULL,
     task TEXT NOT NULL,
     remind_at TIMESTAMP NOT NULL,
-    repeat_interval VARCHAR(50) DEFAULT 'no_repeat'
+    repeat_interval VARCHAR(20) DEFAULT 'no_repeat'
 );
 ```
 
