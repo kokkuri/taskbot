@@ -25,8 +25,8 @@ dp = Dispatcher(bot)
 dp.middleware.setup(LoggingMiddleware())
 
 task_cb = CallbackData("task", "action", "value")
-user_state = {}
-
+user_state = {} #словарь для хранения состояний пользователя
+#приветственное сообщение
 @dp.message_handler(commands=['start'])
 async def send_welcome(message: types.Message):
     await message.reply(
@@ -34,7 +34,7 @@ async def send_welcome(message: types.Message):
         "This bot will help you to schedule all your tasks.\n"
         "Use /help to see all available commands."
     )
-#Список доступных команд
+#список доступных команд
 @dp.message_handler(commands=['help'])
 async def send_help(message: types.Message):
     await message.reply(
@@ -45,13 +45,13 @@ async def send_help(message: types.Message):
         "/edit - Edit a task by selecting it from a list"
     )
 
-#Вызов команды добавления задачи
+#вызов команды добавления задачи
 @dp.message_handler(commands=['add'])
 async def add_task(message: types.Message):
     await message.answer("Please provide the description of the task:")
     user_state[message.from_user.id] = {'state': 'awaiting_task_name', 'action': 'add'}
 
-#Вызов команды для редактирования задач
+#вызов команды для редактирования задач
 @dp.message_handler(commands=['edit'])
 async def edit_task(message: types.Message):
     user_id = message.from_user.id
@@ -67,6 +67,7 @@ async def edit_task(message: types.Message):
 
         markup = InlineKeyboardMarkup(row_width=1)
         for row in rows:
+            #кнопки с задачами
             task_button = InlineKeyboardButton(f"{row[1]} at {row[2]}", callback_data=task_cb.new(action='select_edit', value=row[0]))
             markup.add(task_button)
         await message.answer("Please select the task to edit:", reply_markup=markup)
@@ -103,7 +104,7 @@ async def send_date_selection_markup(user_id):
 
     await bot.send_message(user_id, "Please select the date for the reminder:", reply_markup=markup)
 
-
+#кнопки выбора даты задачи
 @dp.callback_query_handler(task_cb.filter(action='set_date'))
 async def process_date_selection(callback_query: types.CallbackQuery, callback_data: dict):
     user_id = callback_query.from_user.id
@@ -128,7 +129,7 @@ async def process_date_selection(callback_query: types.CallbackQuery, callback_d
 
     await bot.send_message(user_id, "Please provide the time for the reminder (HH:MM):")
 
-
+#на случай если пользователь хочет выбрать удаленную дату
 @dp.message_handler(lambda message: user_state.get(message.from_user.id, {}).get('state') == 'awaiting_custom_date')
 async def process_custom_date(message: types.Message):
     try:
@@ -140,7 +141,7 @@ async def process_custom_date(message: types.Message):
     except ValueError:
         await message.answer("Invalid date format. Please provide the date in DD.MM.YYYY format.")
 
-
+#выбор времени напоминания
 @dp.message_handler(lambda message: user_state.get(message.from_user.id, {}).get('state') == 'awaiting_time_selection')
 async def process_time_selection(message: types.Message):
     try:
@@ -163,7 +164,6 @@ async def process_time_selection(message: types.Message):
         await message.answer("Would you like to set a repeat for this task?", reply_markup=markup)
     except ValueError:
         await message.answer("Invalid time format. Please provide the time in HH:MM format.")
-
 
 @dp.callback_query_handler(task_cb.filter(action='set_repeat'))
 async def process_repeat_selection(callback_query: types.CallbackQuery, callback_data: dict):
@@ -196,7 +196,6 @@ async def save_task(user_id):
     finally:
         user_state.pop(user_id, None)
 
-
 async def update_task(user_id):
     task_id = user_state[user_id]['task_id']
     task_name = user_state[user_id]['task_name']
@@ -215,7 +214,7 @@ async def update_task(user_id):
         await bot.send_message(user_id, f"Failed to edit task: {e}")
     finally:
         user_state.pop(user_id, None)
-#Список доступных задач
+#список доступных задач
 @dp.message_handler(commands=['list'])
 async def list_tasks(message: types.Message):
     user_id = message.from_user.id
