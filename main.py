@@ -10,14 +10,14 @@ from psycopg2 import sql
 from datetime import datetime, timedelta
 import logging
 
-API_TOKEN = '7356915520:AAGqkPNA_yosOzAki3yfMjZ340_FZt0bvgY'
+API_TOKEN = 'my token'
 
 conn = psycopg2.connect(
-    dbname='telegram',
-    user='postgres',
-    password='somepass',
-    host='localhost',
-    port ="5432"
+    dbname='db name',
+    user='user',
+    password='password',
+    host='host',
+    port ="port"
 )
 
 bot = Bot(token=API_TOKEN)
