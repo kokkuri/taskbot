@@ -23,35 +23,6 @@ https://t.me/mytasksalert_bot
 5. Напоминания:
     - Бот периодически проверяет задачи и отправляет пользователю напоминания о предстоящих задачах.
 
-#### Установка и запуск:
-
-1. Клонируйте репозиторий:
-  
-   git clone https://github.com/your-username/task-reminder-bot.git
-   
-2. Перейдите в директорию проекта:
-  
-   cd task-reminder-bot
-   
-3. Установите зависимости:
-  
-   pip install -r requirements.txt
-   
-4. Настройте подключение к базе данных PostgreSQL, заменив параметры в коде:
-   API_TOKEN = 'my token'
-   conn = psycopg2.connect(
-       dbname='your_dbname',
-       user='your_username',
-       password='your_password',
-       host='your_host'
-   )
-   и
-   API_TOKEN = 'my token'
-   
-6. Запустите бота:
-  
-   python main.py
-   
 #### Использование:
 
 - /start: Приветственное сообщение и инструкции по использованию бота.
