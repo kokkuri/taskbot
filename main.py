@@ -34,7 +34,7 @@ async def send_welcome(message: types.Message):
         "This bot will help you to schedule all your tasks.\n"
         "Use /help to see all available commands."
     )
-#список доступных команд
+#список доступных всех команд
 @dp.message_handler(commands=['help'])
 async def send_help(message: types.Message):
     await message.reply(
